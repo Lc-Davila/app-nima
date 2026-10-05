@@ -187,6 +187,13 @@ const ACOES = [
   { key: 'ongs', label: 'ONGs', icon: 'business-outline', rota: 'Ongs' },
 ];
 
+const NOTIFICACOES_INICIAIS = [
+  { id: 1, title: 'Novo match disponível', description: 'Você tem um perfil com alta afinidade hoje.', time: 'agora', type: 'heart', read: false },
+  { id: 2, title: 'Doação confirmada', description: 'Sua contribuição foi registrada com sucesso.', time: '2h', type: 'gift', read: false },
+  { id: 3, title: 'Lembrete de vacinação', description: 'Seu pet precisa de uma revisão em 3 dias.', time: '1d', type: 'calendar', read: true },
+  { id: 4, title: 'ONG em destaque', description: 'Uma instituição perto de você abriu nova campanha.', time: '2d', type: 'business', read: true },
+];
+
 // --- COMPONENTE PRINCIPAL HOME ---
 const HomeScreen = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,6 +205,8 @@ const HomeScreen = ({ navigation, route }) => {
   const [userName, setUserName] = useState('');
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [isFirstTimeTutorialVisible, setIsFirstTimeTutorialVisible] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState(NOTIFICACOES_INICIAIS);
 
   // Avatar do header = foto de perfil escolhida (um pet do tutor). Recarrega ao
   // focar a Home para refletir a escolha feita no Perfil.
@@ -320,6 +329,18 @@ const HomeScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Erro ao gravar no AsyncStorage:', error);
     }
+  };
+
+  const unreadNotifications = notifications.filter((item) => !item.read).length;
+
+  const markNotificationAsRead = (id) => {
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
+    );
+  };
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
   };
 
   const handleCompleteQuiz = useCallback(async (respostas) => {
@@ -458,11 +479,13 @@ const HomeScreen = ({ navigation, route }) => {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         <View style={styles.header}>
           <Logo height={26} />
+
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellWrap}>
-              <Ionicons name="notifications-outline" size={23} color={colors.textDark} />
-              <View style={styles.bellDot} />
+            <TouchableOpacity style={styles.bellWrap} activeOpacity={0.8} onPress={() => setShowNotifications(true)}>
+              <Ionicons name="notifications-outline" size={22} color={colors.textDark} />
+              {unreadNotifications > 0 && <View style={styles.bellDot} />}
             </TouchableOpacity>
+
             <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
               {avatarUri ? (
                 <Image source={{ uri: avatarUri }} style={styles.avatar} />
@@ -571,6 +594,54 @@ const HomeScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         ) : null}
       </ScrollView>
+
+      <Modal
+        visible={showNotifications}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowNotifications(false)}>
+          <View style={styles.notificationSheet}>
+            <View style={styles.notificationHeader}>
+              <Text style={styles.notificationTitle}>Notificações</Text>
+              <TouchableOpacity onPress={markAllNotificationsAsRead}>
+                <Text style={styles.notificationAction}>Marcar todas</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.notificationList}>
+              {notifications.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.notificationItem, !item.read && styles.notificationItemUnread]}
+                  onPress={() => {
+                    markNotificationAsRead(item.id);
+                    setShowNotifications(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.notificationIcon, !item.read && styles.notificationIconUnread]}>
+                    <Ionicons
+                      name={item.type === 'heart' ? 'heart' : item.type === 'gift' ? 'gift' : item.type === 'calendar' ? 'calendar' : 'business'}
+                      size={17}
+                      color={item.read ? colors.textMuted : colors.peach}
+                    />
+                  </View>
+                  <View style={styles.notificationContent}>
+                    <Text style={styles.notificationItemTitle}>{item.title}</Text>
+                    <Text style={styles.notificationItemText}>{item.description}</Text>
+                  </View>
+                  <View style={styles.notificationMeta}>
+                    <Text style={styles.notificationTime}>{item.time}</Text>
+                    {!item.read && <View style={styles.notificationUnreadDot} />}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Questionario
         visible={isQuizVisible}

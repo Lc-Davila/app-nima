@@ -17,6 +17,7 @@ import {
 // os glyphs prontos — os três conjuntos que o app usa.
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { navigationRef } from './src/services/navegacao';
+import { applyTheme, subscribeToTheme } from './src/theme';
 
 // --- Autenticação ---
 import Login from './src/screens/Auth/Login/index';
@@ -53,6 +54,7 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
+  const [themeMode, setThemeMode] = useState('light');
   // Sem sessão válida a entrada é o Login (que já tem "Criar conta"). Só com
   // um token de TUTOR lembrado a entrada é a Home — antes caía sempre na Home
   // de visitante, sem caminho visível pra login (só saindo pelas Configurações),
@@ -73,6 +75,12 @@ export default function App() {
   });
 
   useEffect(() => {
+    const unsubscribeTheme = subscribeToTheme(setThemeMode);
+
+    return () => unsubscribeTheme();
+  }, []);
+
+  useEffect(() => {
     // Cargos que só existem no painel web — uma sessão dessas não vale no app.
     const CARGOS_SO_WEB = ['ong', 'desenvolvedor'];
 
@@ -81,6 +89,11 @@ export default function App() {
         const token = await AsyncStorage.getItem('@nima_token');
         const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
         const role = await AsyncStorage.getItem('@nima_user_role');
+        const savedTheme = await AsyncStorage.getItem('@nima_theme_mode');
+        const preferredTheme = savedTheme === 'dark' ? 'dark' : 'light';
+
+        applyTheme(preferredTheme);
+        setThemeMode(preferredTheme);
 
         // Só entra direto na Home com um token de TUTOR que pediu "lembrar-me".
         const sessaoTutorValida =
@@ -121,13 +134,27 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <StatusBar style="dark" />
+    <NavigationContainer
+      ref={navigationRef}
+      theme={themeMode === 'dark' ? {
+        dark: true,
+        colors: {
+          background: '#0F172A',
+          card: '#111827',
+          text: '#F3F7FF',
+          border: '#2A3A4D',
+          primary: '#68A2FF',
+          notification: '#FBBF24',
+        },
+      } : undefined}
+    >
+      <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
           animation: 'fade_from_bottom',
+          contentStyle: { backgroundColor: themeMode === 'dark' ? '#0F172A' : '#FBF6EC' },
         }}
       >
         {/* Núcleo do tutor */}

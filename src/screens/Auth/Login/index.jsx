@@ -223,6 +223,13 @@ const LoginScreen = () => {
                 containerStyle={styles.inputGroup}
               />
 
+              {popupConfig.show && popupConfig.type === 'error' && (
+                <Animated.View style={[styles.fieldErrorContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
+                  <Ionicons name="alert-circle" size={16} color="#E74C3C" />
+                  <Text style={styles.fieldErrorText}>{popupConfig.message}</Text>
+                </Animated.View>
+              )}
+
               {/* Lembrar-me & Esqueceu Senha */}
               <View style={styles.bottomInputRow}>
                 <TouchableOpacity style={styles.rememberContainer} activeOpacity={0.7} onPress={() => setRememberMe(!rememberMe)}>
@@ -296,7 +303,7 @@ const LoginScreen = () => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {popupConfig.show && (
+      {popupConfig.show && popupConfig.type !== 'error' && (
         <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
           <View style={[
             styles.popupContent, 

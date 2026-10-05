@@ -275,6 +275,25 @@ const styles = StyleSheet.create({
   },
 
   /* Popup Toast */
+  fieldErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FDECEC',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: -4,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E74C3C',
+  },
+  fieldErrorText: {
+    flex: 1,
+    color: '#B42318',
+    fontSize: 12.5,
+    fontFamily: 'Nunito_600SemiBold',
+  },
   popupContainer: {
     position: 'absolute',
     bottom: 40,

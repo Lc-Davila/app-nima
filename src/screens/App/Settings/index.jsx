@@ -3,7 +3,13 @@ import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Plat
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { styles } from './styles';
-import { BRAND } from '../../../theme';
+import { BRAND, applyTheme } from '../../../theme';
+
+const LANGUAGE_OPTIONS = {
+  'pt-BR': 'Português (BR)',
+  'en-US': 'English',
+  'es-ES': 'Español',
+};
 
 const SettingsScreen = ({ navigation }) => {
   const [notifPush, setNotifPush] = React.useState(true);
@@ -11,6 +17,67 @@ const SettingsScreen = ({ navigation }) => {
   const [notifSaude, setNotifSaude] = React.useState(true);
   const [autoUpdate, setAutoUpdate] = React.useState(true);
   const [darkMode, setDarkMode] = React.useState(false);
+  const [language, setLanguage] = React.useState('pt-BR');
+
+  React.useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const savedTheme = await AsyncStorage.getItem('@nima_theme_mode');
+        const savedLanguage = await AsyncStorage.getItem('@nima_language');
+
+        const nextTheme = savedTheme === 'dark' ? 'dark' : 'light';
+        const nextLanguage = savedLanguage && LANGUAGE_OPTIONS[savedLanguage] ? savedLanguage : 'pt-BR';
+
+        setDarkMode(nextTheme === 'dark');
+        setLanguage(nextLanguage);
+        applyTheme(nextTheme);
+      } catch (error) {
+        applyTheme('light');
+      }
+    };
+
+    loadPreferences();
+  }, []);
+
+  const handleThemeChange = async (value) => {
+    const nextTheme = value ? 'dark' : 'light';
+    setDarkMode(value);
+    applyTheme(nextTheme);
+
+    try {
+      await AsyncStorage.setItem('@nima_theme_mode', nextTheme);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível salvar a preferência de tema.');
+    }
+  };
+
+  const handleLanguageChange = async (nextLanguage) => {
+    setLanguage(nextLanguage);
+
+    try {
+      await AsyncStorage.setItem('@nima_language', nextLanguage);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível salvar o idioma selecionado.');
+    }
+  };
+
+  const openLanguagePicker = () => {
+    const options = Object.entries(LANGUAGE_OPTIONS).map(([value, label]) => ({
+      text: label,
+      onPress: () => handleLanguageChange(value),
+    }));
+
+    Alert.alert('Idioma', 'Selecione o idioma do aplicativo', [
+      ...options,
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
+  const languageItems = Object.entries(LANGUAGE_OPTIONS).map(([value, label]) => ({
+    id: `lang-${value}`,
+    label,
+    value,
+  }));
 
   // Logout completo: sem isso o "Lembrar-me" reloga o usuário sozinho.
   const handleLogout = async () => {
@@ -32,10 +99,20 @@ const SettingsScreen = ({ navigation }) => {
     {
       title: 'Preferências',
       items: [
-        { id: 'lang', title: 'Idioma', value: 'Português (BR)', icon: 'language-outline' },
-        { id: 'theme', title: 'Tema escuro', sub: 'Aparência do aplicativo', type: 'switch', value: darkMode, setter: setDarkMode, icon: 'moon-outline' },
+        { id: 'lang', title: 'Idioma', value: LANGUAGE_OPTIONS[language] || 'Português (BR)', icon: 'language-outline', onPress: openLanguagePicker },
+        { id: 'theme', title: 'Tema escuro', sub: 'Aparência do aplicativo', type: 'switch', value: darkMode, setter: handleThemeChange, icon: 'moon-outline' },
         { id: 'a11y', title: 'Acessibilidade', sub: 'Texto, contraste e movimento', icon: 'text-outline' },
       ],
+    },
+    {
+      title: 'Idioma',
+      items: languageItems.map((item) => ({
+        id: item.id,
+        title: item.label,
+        icon: language === item.value ? 'checkmark-circle' : 'language-outline',
+        value: language === item.value ? 'Selecionado' : undefined,
+        onPress: () => handleLanguageChange(item.value),
+      })),
     },
     {
       title: 'Notificações',
@@ -72,7 +149,7 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
@@ -89,7 +166,12 @@ const SettingsScreen = ({ navigation }) => {
             <View style={styles.sectionCard}>
               {section.items.map((item, i) => (
                 <View key={item.id}>
-                  <TouchableOpacity style={styles.itemRow} disabled={item.type === 'switch'} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    style={styles.itemRow}
+                    disabled={item.type === 'switch'}
+                    activeOpacity={item.onPress ? 0.7 : 1}
+                    onPress={item.onPress}
+                  >
                     <View style={styles.itemLeft}>
                       <View style={styles.itemIcon}>
                         <Ionicons name={item.icon} size={19} color={BRAND.blue} />
